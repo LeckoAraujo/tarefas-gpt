@@ -45,4 +45,21 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function atividades()
+    {
+        return $this->hasMany(Atividade::class);
+    }
+
+    public function logs()
+    {
+        return $this->hasMany(LogAtividade::class);
+    }
+
+    public function conquistas()
+    {
+        return $this->belongsToMany(Conquista::class, 'usuarios_conquistas')
+                    ->withPivot('data_desbloqueio')
+                    ->withTimestamps();
+    }
 }
