@@ -51,7 +51,7 @@ class AtividadeController extends Controller
 
     public function destroy(Atividade $atividade)
     {
-        $this->authorize('delete', $atividade);
+        // $this->authorize('delete', $atividade);
 
         $atividade->delete();
 
