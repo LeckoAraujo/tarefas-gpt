@@ -52,6 +52,9 @@ class AtividadeController extends Controller
     public function destroy(Atividade $atividade)
     {
         // $this->authorize('delete', $atividade);
+        if ($log->user_id !== $user->id) {
+            abort(403);
+        }
 
         $atividade->delete();
 
