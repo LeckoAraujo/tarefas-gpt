@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\UsuarioConquista;
 use App\Models\Conquista;
 use App\Models\User;
+use Carbon\Carbon;
 
 class LogAtividadeController extends Controller
 {
@@ -86,16 +87,47 @@ class LogAtividadeController extends Controller
 
         $conquistas = DB::table('usuarios_conquistas')
             ->join('conquistas', 'usuarios_conquistas.conquista_id', '=', 'conquistas.id')
-            ->select('conquistas.titulo', 'conquistas.descricao', 'usuarios_conquistas.data_desbloqueio')
+            ->select('conquistas.titulo', 'usuarios_conquistas.data_desbloqueio')
             ->where('usuarios_conquistas.user_id', $user->id)
-            ->orderBy('conquistas.pontos_necessarios')
             ->get();
 
-        return Inertia::render('Dashboard', [
+        // Dados para o gráfico (últimos 7 dias)
+        $dadosGrafico = collect(range(6, 0))->map(function ($diasAtras) use ($user) {
+            $data = Carbon::today()->subDays($diasAtras);
+            $qtd = LogAtividade::where('user_id', $user->id)
+                ->whereDate('data_conclusao', $data)
+                ->count();
+
+            return [
+                'dia' => $data->format('d/m'),
+                'atividades' => $qtd,
+            ];
+        });
+
+        // Atividades de hoje
+        $atividadesHoje = Atividade::where('user_id', $user->id)
+            ->get()
+            ->map(function ($a) use ($user) {
+                $concluida = LogAtividade::where('user_id', $user->id)
+                    ->where('atividade_id', $a->id)
+                    ->whereDate('data_conclusao', today())
+                    ->exists();
+                return [
+                    'id' => $a->id,
+                    'nome' => $a->nome,
+                    'pontos' => $a->pontos,
+                    'tipo' => $a->tipo,
+                    'concluida' => $concluida,
+                ];
+            });
+
+        return inertia('Dashboard', [
             'auth' => ['user' => $user],
             'totalPontos' => $totalPontos,
             'ultimosLogs' => $ultimosLogs,
             'conquistas' => $conquistas,
+            'dadosGrafico' => $dadosGrafico,
+            'atividadesHoje' => $atividadesHoje,
         ]);
     }
 
@@ -119,5 +151,22 @@ class LogAtividadeController extends Controller
             'success' => 'Conclusão desfeita com sucesso 🔁',
             'totalPontos' => $totalPontos,
         ]);
+    }
+
+    public function destroyPorAtividade(Atividade $atividade)
+    {
+        $user = auth()->user();
+
+        $log = LogAtividade::where('atividade_id', $atividade->id)
+            ->where('user_id', $user->id)
+            ->whereDate('data_conclusao', now()->toDateString())
+            ->first();
+
+        if ($log) {
+            $log->delete();
+            return redirect()->back()->with('success', 'Conclusão desfeita com sucesso 🔁');
+        }
+
+        return redirect()->back()->with('error', 'Nenhuma conclusão encontrada para desfazer.');
     }
 }

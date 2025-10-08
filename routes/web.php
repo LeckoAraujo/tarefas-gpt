@@ -40,7 +40,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/atividades/{atividade}/concluir', [LogAtividadeController::class, 'store'])
         ->name('atividades.concluir');
 
-    Route::delete('/atividades/{log}/desfazer', [LogAtividadeController::class, 'destroy'])
+    // Route::delete('/atividades/{log}/desfazer', [LogAtividadeController::class, 'destroy'])
+    //     ->name('atividades.desfazer');
+
+    Route::delete('/atividades/{atividade}/desfazer', [LogAtividadeController::class, 'destroyPorAtividade'])
         ->name('atividades.desfazer');
 });
 
